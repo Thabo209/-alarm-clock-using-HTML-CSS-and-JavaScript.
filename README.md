@@ -1,4 +1,4 @@
-# -Alarm-Clock-Using-HTML-CSS-and-JavaScript.
+# Alarm-Clock-Using-HTML-CSS-and-JavaScript.
 
 I've created a fully functional alarm clock web application with the following features:
 
