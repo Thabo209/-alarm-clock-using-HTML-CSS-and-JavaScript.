@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm Clock</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+        }
+        
+        .clock-container {
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: 360px;
+            text-align: center;
+        }
+        
+        .time-display {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin: 10px 0 20px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .date-display {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            margin-top: 30px;
+        }
+        
+        .alarm-form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        input[type="time"] {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 10px;
+            border-radius: 5px 0 0 5px;
+            font-size: 1rem;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .set-alarm-btn {
+            border-radius: 0 5px 5px 0;
+        }
+        
+        button:hover {
+            background-color: #3e8e41;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .alarm-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .alarm-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .active-alarm {
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .alarm-ringing {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="clock-container">
+        <h1>Alarm Clock</h1>
+        <div class="date-display" id="date">Monday, March 10, 2025</div>
+        <div class="time-display" id="clock">00:00:00</div>
+        
+        <div class="controls">
+            <div class="alarm-form">
+                <input type="time" id="alarm-time" required>
+                <button type="button" class="set-alarm-btn" id="set-alarm">Set Alarm</button>
+            </div>
+            
+            <button type="button" id="stop-alarm" disabled>Stop Alarm</button>
+            
+            <div>
+                <h3>Alarms</h3>
+                <ul class="alarm-list" id="alarm-list">
+                    <!-- Alarm items will be added here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio for alarm
+        const alarmSound = new Audio('https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js');
+        alarmSound.src = 'data:audio/wav;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAbCAAGBg0NDRQUFBsbIiIiKSkpMDA3Nzc+Pj5FRUVNTU1UVFRbW1tiYmJqampxcXF4eHiAgICHh4ePj4+WlpadnZ2lpaWsrKy0tLS7u7vDw8PKysrS0tLZ2dnh4eHo6Oj19fX8/PwAAAAOTEFNRTMuOTlyAc0AAAAAAAAAABSAJAJAQgAAgAAAAxsIxJmSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQxAAAE/gFLBQMAIXkC5tDLnMigIAVp+UEBAQFQVFcxxQA8D4Pg//g+D0Hg//+D//B//wf/HE4K55I7neOAOAD9D/5QENADQAU/sR3fI7vHZvG5bSOr5HdM63kd1iMGwbOt43KcjumR3fJHV8kd5iO88/////+ysyO75HdcjumR3bI7nm31/ld/19/////2YqyO75HdcjumR3fI7pFDTx+y5jmOY5hCCLpNg0L2zM7EkE0PSMcPiSNZHq6q1////+cfZx9nH1VY5zTMzH2cfZiqquqqqqcChwwcMHDoqqsMHHiRKNhiRMNRd1Wq7DGJEzKqdVVg4g4qqrV2GDiJtXdVYdiRKPEiYa+JKsOxGRquF/iRMOt1q7DBxEg4iQcMMHnDHHG2AcBACyMPjwTnPnjBfoBnUBwAgPnNBgUDmOhjFAGZcGCwMw0MowbMqzLgw/BwTFQw+MAw1MpQRM9TDYTFYwcJEDHZXALGNxiAMq2BgIRGKx0MRExjChmASAbHkKOdgJAIHYKGGFUCXAOAnFZBFGkkQZr8TCBD4PECgQTEA6IEFwbQAD8g1EkcJlYaahgaOHWJGN//uSxAmAHG4ZXf5nAAPLQSr/MeAE5WMNIeGcTojyOqJYaaHWoaQGaG3wwcZEOG4YoIlQrGGCMBRdmIIz5gEFqcZnFKIZEOW+ZvGkZRl2MfTRGHYOEhlIYdgwNBkoDDIOAWGcQqmOwtmBg5hQDgHBR0NkBzZdQxyDEXRfDAYUBOJxaLB3EAhCkAhqm5/GE7IAQRHQWDLAQsXCCQMALB48KZrCZFmOJn8bFGRho8YoGkwUCg1ALFDBa5AeYUWFzA6tVXMQjIkkDBC0QD9TBgCMBBYSYnCpkKLnaY0YDGQbGEw0IhKcQEhgCJggDCwBmAwGBgMFEJgoMAIBGLwgpsCwOFPxodCgc+xodOHDpj7fOHS09DQTtPsxoe0+xoe3Vqup6Gh1YfXLh01atWrX1VV7VMPapzD5qtfrST/M1P7eZtq1atWrVq1cAgHVqtXV+tWcw6cw5/6/WrVq1auYcOYfNP9fp99VXm3+v7H+/P693r1c7Pc673+71//5nmd37Pf+/dnnbsf7X/t99+7uxk7M7nd//uSxA8AHlYXV/mPAPMrw2t/MYAGdmTldud3Yyd2Z3L9+/N35J3Zk7sZOzJ2J3Zndvo+Z3e7N35zczO73Y/szs7MmZnO7sZOzJmZjuO43YRmZmd2MnZkbMydmZmYzmd3u47GYyZkzM7jdmTGYzN3r7Vq1atWtWrVq1atWrVq1asgRkAAQRkUETMzNSEBBQUDIyMTAgICAgMjIxIxICAQEDAQMTAwQEBMhAyMyMwQAgIGAgIAIgACAQMAAgACQCIGCABCQAMzMzCAgYABAgICAgICAgIRIxEDEQIRIxEDEQMRAQICAgIDIQIRAgIA0wMDAxMTMiAzMjAwQCAgIBAgICAQEBAQIBAQMBAQMDAwMBAkdavcABg4ECAxEydnJODHU06Myjdsz+NXjTAyTMSDLUyoMVjJswpMBTBMJGIAcFl6/4MAIGFA3aYRBQVA1QK/A8YUVADyGAAMAtARGgXMHqAMCCQCGBJQOZKYiDpkoAGQgKYMAAYCCZgIFGFwaZQNJqYZgYAGBgAd9Bk//uSxBeAHGINWf2JAAL+wes/sYAEywDQYCgFBowGAgAMBQYwVADIa5AYBgKgJoA1BEAwaYFAJpwNiQPBgYADQW4EkCYCkA0iT4AoCoTx0IxpBYLFo4i0dBVo5HJNHS06nLS05adl0dDzz0dIul0dLTk5cun0v7Tc///f/+/p1VadVVq+qtf1fvICC/8qqTJKkySV9q1atW2rVqtWcw50tOpzDWkn9et0kl0m02m23//////////9VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//uSxCiAGVn7W/2HACLGP2v/sMAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+
+        let alarms = [];
+        let isAlarmRinging = false;
+
+        // DOM elements
+        const clockDisplay = document.getElementById('clock');
+        const dateDisplay = document.getElementById('date');
+        const alarmTimeInput = document.getElementById('alarm-time');
+        const setAlarmBtn = document.getElementById('set-alarm');
+        const stopAlarmBtn = document.getElementById('stop-alarm');
+        const alarmListElement = document.getElementById('alarm-list');
+
+        // Update clock
+        function updateClock() {
+            const now = new Date();
+            
+            // Update time
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            clockDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+            
+            // Update date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateDisplay.textContent = now.toLocaleDateString(undefined, options);
+            
+            // Check if any alarm should ring
+            checkAlarms();
+        }
+
+        // Initialize clock
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Add alarm
+        setAlarmBtn.addEventListener('click', () => {
+            const timeValue = alarmTimeInput.value;
+            if (timeValue) {
+                const [hours, minutes] = timeValue.split(':');
+                
+                const alarm = {
+                    id: Date.now(),
+                    hours: parseInt(hours),
+                    minutes: parseInt(minutes),
+                    enabled: true
+                };
+                
+                alarms.push(alarm);
+                renderAlarms();
+                alarmTimeInput.value = '';
+            }
+        });
+
+        // Stop alarm
+        stopAlarmBtn.addEventListener('click', () => {
+            stopAlarm();
+        });
+
+        // Check if any alarm should ring
+        function checkAlarms() {
+            if (isAlarmRinging) return;
+            
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            
+            for (const alarm of alarms) {
+                if (alarm.enabled && 
+                    alarm.hours === currentHours && 
+                    alarm.minutes === currentMinutes && 
+                    now.getSeconds() < 10) {
+                    ringAlarm(alarm.id);
+                    break;
+                }
+            }
+        }
+
+        // Ring the alarm
+        function ringAlarm(alarmId) {
+            isAlarmRinging = true;
+            document.querySelector(`.alarm-item[data-id="${alarmId}"]`).classList.add('alarm-ringing');
+            document.querySelector('.clock-container').classList.add('alarm-ringing');
+            stopAlarmBtn.disabled = false;
+            
+            // Play sound
+            alarmSound.loop = true;
+            alarmSound.play().catch(e => console.log("Error playing sound:", e));
+            
+            // Auto stop after 1 minute
+            setTimeout(() => {
+                if (isAlarmRinging) {
+                    stopAlarm();
+                }
+            }, 60000);
+        }
+
+        // Stop the alarm
+        function stopAlarm() {
+            isAlarmRinging = false;
+            document.querySelectorAll('.alarm-ringing').forEach(el => {
+                el.classList.remove('alarm-ringing');
+            });
+            stopAlarmBtn.disabled = true;
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+        }
+
+        // Render alarms list
+        function renderAlarms() {
+            alarmListElement.innerHTML = '';
+            
+            if (alarms.length === 0) {
+                alarmListElement.innerHTML = '<li>No alarms set</li>';
+                return;
+            }
+            
+            alarms.forEach(alarm => {
+                const alarmItem = document.createElement('li');
+                alarmItem.className = `alarm-item ${alarm.enabled ? 'active-alarm' : ''}`;
+                alarmItem.dataset.id = alarm.id;
+                
+                const formattedHours = alarm.hours.toString().padStart(2, '0');
+                const formattedMinutes = alarm.minutes.toString().padStart(2, '0');
+                
+                alarmItem.innerHTML = `
+                    <span>${formattedHours}:${formattedMinutes}</span>
+                    <div>
+                        <button class="toggle-btn" data-id="${alarm.id}">
+                            ${alarm.enabled ? 'Disable' : 'Enable'}
+                        </button>
+                        <button class="delete-btn" data-id="${alarm.id}">Delete</button>
+                    </div>
+                `;
+                
+                alarmListElement.appendChild(alarmItem);
+            });
+            
+            // Add event listeners to buttons
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', toggleAlarm);
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', deleteAlarm);
+            });
+        }
+
+        // Toggle alarm on/off
+        function toggleAlarm(e) {
+            const alarmId = parseInt(e.target.dataset.id);
+            const alarm = alarms.find(a => a.id === alarmId);
+            
+            if (alarm) {
+                alarm.enabled = !alarm.enabled;
+                renderAlarms();
+            }
+        }
+
+        // Delete alarm
+        function deleteAlarm(e) {
+            const alarmId = parseInt(e.target.dataset.id);
+            alarms = alarms.filter(a => a.id !== alarmId);
+            renderAlarms();
+        }
+
+        // Initial render
+        renderAlarms();
+    </script>
+</body>
+</html>
